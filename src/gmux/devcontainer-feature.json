@@ -1,0 +1,22 @@
+{
+  "id": "gmux",
+  "version": "1.0.0",
+  "name": "gmux",
+  "documentationURL": "https://gmux.app/running-in-docker",
+  "description": "Installs gmux and gmuxd for managing terminal sessions from a browser dashboard.",
+  "options": {
+    "version": {
+      "type": "string",
+      "default": "latest",
+      "description": "gmux version to install (e.g. '0.8.0' or 'latest')"
+    }
+  },
+  "forwardPorts": [8791],
+  "portsAttributes": {
+    "8791": {
+      "label": "gmux",
+      "onAutoForward": "silent"
+    }
+  },
+  "entrypoint": "/usr/local/bin/gmuxd-start.sh"
+}
