@@ -1,6 +1,6 @@
 # gmux (ghcr.io/gmuxapp/features/gmux)
 
-Installs [gmux](https://gmux.app) and gmuxd into a dev container. gmuxd starts automatically with a [network listener](https://gmux.app/develop/network-listener) so it's accessible from the host via port forwarding.
+Installs [gmux](https://gmux.app) and gmuxd into a dev container. gmuxd starts automatically with `GMUXD_LISTEN=0.0.0.0` so it's accessible from the host via port forwarding.
 
 ## Usage
 
@@ -13,15 +13,15 @@ Installs [gmux](https://gmux.app) and gmuxd into a dev container. gmuxd starts a
 }
 ```
 
-Port 8791 is automatically forwarded to the host. Open the forwarded URL and authenticate with the bearer token.
+Port 8790 is automatically forwarded to the host. After the container starts, a clickable auth link appears in the terminal.
 
 ### Finding the auth token
 
 ```bash
-docker exec <container> gmuxd auth-link
+gmuxd auth
 ```
 
-Prints a ready-to-use URL with the token. Open it in a browser to authenticate.
+Prints the listen address and a ready-to-use URL with the token. Open it in a browser to authenticate.
 
 ## Options
 
@@ -31,7 +31,7 @@ Prints a ready-to-use URL with the token. Open it in a browser to authenticate.
 
 ## Security
 
-The network listener uses bearer token authentication. The token is auto-generated on first start and stored inside the container at `~/.local/state/gmux/auth-token`.
+All TCP connections use bearer token authentication. The token is auto-generated on first start and stored inside the container at `~/.local/state/gmux/auth-token`.
 
 Devcontainer-aware tooling (VS Code, Codespaces) forwards the port to `localhost` on the host, so only local processes can reach it. The bearer token provides a second layer of protection on the Docker bridge network.
 

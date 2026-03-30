@@ -36,31 +36,55 @@ fi
 
 echo "gmux ${VERSION} installed successfully"
 
-# Generate config for the network listener.
-# Tailscale is intentionally disabled; container gmuxd is accessed
-# via port forwarding (browser) or Docker network (peer discovery).
-mkdir -p /usr/local/share/gmux
-cat > /usr/local/share/gmux/config.toml << EOF
-[network]
-listen = "0.0.0.0:8791"
-EOF
+# Entrypoint: starts gmuxd with GMUXD_LISTEN=0.0.0.0 so the container
+# is reachable via port forwarding. No config file needed.
+# _REMOTE_USER and _REMOTE_USER_HOME are available at build time (install.sh)
+# but NOT at container start. Bake them into the entrypoint script now.
+REMOTE_USER="${_REMOTE_USER:-root}"
+REMOTE_HOME="${_REMOTE_USER_HOME:-/root}"
 
-# Entrypoint: copies config if user hasn't provided their own, starts gmuxd.
-cat > /usr/local/bin/gmuxd-start.sh << 'SCRIPT'
+cat > /usr/local/bin/gmuxd-start.sh << SCRIPT
 #!/bin/bash
-GMUX_CONFIG_DIR="${XDG_CONFIG_HOME:-$HOME/.config}/gmux"
-if [ ! -f "$GMUX_CONFIG_DIR/config.toml" ]; then
-  mkdir -p "$GMUX_CONFIG_DIR"
-  cp /usr/local/share/gmux/config.toml "$GMUX_CONFIG_DIR/config.toml"
-fi
+TARGET_USER="${REMOTE_USER}"
+TARGET_HOME="${REMOTE_HOME}"
+export GMUXD_LISTEN="0.0.0.0"
 
-if ! curl -fsS http://localhost:8790/ >/dev/null 2>&1; then
-  gmuxd start >/tmp/gmuxd.log 2>&1 &
-  for i in $(seq 1 30); do
-    curl -fsS http://localhost:8790/ >/dev/null 2>&1 && break
+# Start gmuxd as the remote user so state (auth token, db) lives in their home.
+start_gmuxd() {
+  if [ "\$(id -u)" = "0" ] && [ "\$TARGET_USER" != "root" ] && id "\$TARGET_USER" &>/dev/null; then
+    su - "\$TARGET_USER" -c "GMUXD_LISTEN=0.0.0.0 gmuxd start" >/tmp/gmuxd.log 2>&1 &
+  else
+    gmuxd start >/tmp/gmuxd.log 2>&1 &
+  fi
+}
+
+SOCK="\${TARGET_HOME}/.local/state/gmux/gmuxd.sock"
+if ! curl -fsS --unix-socket "\$SOCK" http://localhost/v1/health >/dev/null 2>&1; then
+  start_gmuxd
+  for i in \$(seq 1 30); do
+    curl -fsS --unix-socket "\$SOCK" http://localhost/v1/health >/dev/null 2>&1 && break
     sleep 0.5
   done
 fi
-exec "$@"
+exec "\$@"
 SCRIPT
 chmod +x /usr/local/bin/gmuxd-start.sh
+
+# Post-attach notice: prints a localhost auth URL that's clickable in the
+# VS Code terminal. Runs as the remote user after VS Code attaches.
+cat > /usr/local/bin/gmuxd-auth-notice.sh << 'NOTICE'
+#!/bin/bash
+TOKEN_FILE="${XDG_STATE_HOME:-$HOME/.local/state}/gmux/auth-token"
+if [ -f "$TOKEN_FILE" ]; then
+  TOKEN=$(cat "$TOKEN_FILE")
+  URL="http://localhost:8790/auth/login?token=${TOKEN}"
+  VERSION=$(gmuxd version 2>/dev/null || echo "unknown")
+  CHANGELOG="https://gmux.app/changelog"
+  echo ""
+  printf '  \e[1;36m\e]8;;%s\007Open gmux\e]8;;\007\e[0m\n' "$URL"
+  echo ""
+  printf '  Version %s \xc2\xb7 \e]8;;%s\007Changelog\e]8;;\007\n' "$VERSION" "$CHANGELOG"
+  echo ""
+fi
+NOTICE
+chmod +x /usr/local/bin/gmuxd-auth-notice.sh

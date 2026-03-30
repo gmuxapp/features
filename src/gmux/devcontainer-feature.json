@@ -11,12 +11,13 @@
       "description": "gmux version to install (e.g. '0.8.0' or 'latest')"
     }
   },
-  "forwardPorts": [8791],
+  "forwardPorts": [8790],
   "portsAttributes": {
-    "8791": {
+    "8790": {
       "label": "gmux",
       "onAutoForward": "silent"
     }
   },
-  "entrypoint": "/usr/local/bin/gmuxd-start.sh"
+  "entrypoint": "/usr/local/bin/gmuxd-start.sh",
+  "postAttachCommand": "/usr/local/bin/gmuxd-auth-notice.sh"
 }
