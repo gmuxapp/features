@@ -14,12 +14,5 @@
   "containerEnv": {
     "GMUXD_LISTEN": "0.0.0.0"
   },
-  "forwardPorts": [8790],
-  "portsAttributes": {
-    "8790": {
-      "label": "gmux",
-      "onAutoForward": "silent"
-    }
-  },
   "entrypoint": "/usr/local/bin/gmuxd-start.sh"
 }

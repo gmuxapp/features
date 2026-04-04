@@ -9,11 +9,15 @@ Installs [gmux](https://gmux.app) and gmuxd into a dev container. gmuxd starts a
   "image": "mcr.microsoft.com/devcontainers/base:debian",
   "features": {
     "ghcr.io/gmuxapp/features/gmux:1": {}
+  },
+  "forwardPorts": [8790],
+  "portsAttributes": {
+    "8790": { "label": "gmux", "onAutoForward": "silent" }
   }
 }
 ```
 
-Port 8790 is automatically forwarded to the host. Open the forwarded URL and authenticate with the bearer token.
+Add `forwardPorts` to your `devcontainer.json` so port 8790 is forwarded to the host. Open the forwarded URL and authenticate with the bearer token.
 
 ### Finding the auth token
 
@@ -39,6 +43,7 @@ If you need a known token (for scripting, health checks, or future host-side pee
   "features": {
     "ghcr.io/gmuxapp/features/gmux:1": {}
   },
+  "forwardPorts": [8790],
   "containerEnv": {
     "GMUXD_TOKEN": "output-of-openssl-rand-hex-32"
   }
