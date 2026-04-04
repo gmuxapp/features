@@ -13,7 +13,8 @@ Installs gmux and gmuxd into a dev container. gmuxd starts automatically when th
   "image": "mcr.microsoft.com/devcontainers/base:debian",
   "features": {
     "ghcr.io/gmuxapp/features/gmux:1": {}
-  }
+  },
+  "forwardPorts": [8790]
 }
 ```
 
