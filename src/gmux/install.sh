@@ -36,24 +36,11 @@ fi
 
 echo "gmux ${VERSION} installed successfully"
 
-# Generate config for the network listener.
-# Tailscale is intentionally disabled; container gmuxd is accessed
-# via port forwarding (browser) or Docker network (peer discovery).
-mkdir -p /usr/local/share/gmux
-cat > /usr/local/share/gmux/config.toml << EOF
-[network]
-listen = "0.0.0.0:8791"
-EOF
-
-# Entrypoint: copies config if user hasn't provided their own, starts gmuxd.
+# Entrypoint: starts gmuxd in the background if not already running.
+# GMUXD_LISTEN is set via containerEnv in devcontainer-feature.json.
+# GMUXD_TOKEN can be set via containerEnv in the user's devcontainer.json.
 cat > /usr/local/bin/gmuxd-start.sh << 'SCRIPT'
 #!/bin/bash
-GMUX_CONFIG_DIR="${XDG_CONFIG_HOME:-$HOME/.config}/gmux"
-if [ ! -f "$GMUX_CONFIG_DIR/config.toml" ]; then
-  mkdir -p "$GMUX_CONFIG_DIR"
-  cp /usr/local/share/gmux/config.toml "$GMUX_CONFIG_DIR/config.toml"
-fi
-
 if ! curl -fsS http://localhost:8790/ >/dev/null 2>&1; then
   gmuxd start >/tmp/gmuxd.log 2>&1 &
   for i in $(seq 1 30); do

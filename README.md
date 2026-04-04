@@ -21,4 +21,4 @@ See [src/gmux/README.md](src/gmux/README.md) for options and configuration.
 
 ## Publishing
 
-Features are published automatically to `ghcr.io/gmuxapp/features/` on push to `main` via the [release workflow](.github/workflows/release.yaml).
+Features are published automatically to `ghcr.io/gmuxapp/features/` via the [release workflow](.github/workflows/release.yaml). Trigger it manually from the Actions tab after merging changes to `main`.
