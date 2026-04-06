@@ -1,6 +1,6 @@
 # gmux (ghcr.io/gmuxapp/features/gmux)
 
-Installs [gmux](https://gmux.app) and gmuxd into a dev container. gmuxd starts automatically and listens on all interfaces so it's accessible via port forwarding.
+Installs [gmux](https://gmux.app) and gmuxd into a dev container. gmuxd starts automatically when the container starts. The host gmuxd discovers it and aggregates its sessions into your dashboard.
 
 ## Usage
 
@@ -8,42 +8,30 @@ Installs [gmux](https://gmux.app) and gmuxd into a dev container. gmuxd starts a
 {
   "image": "mcr.microsoft.com/devcontainers/base:debian",
   "features": {
-    "ghcr.io/gmuxapp/features/gmux:1": {}
-  },
-  "forwardPorts": [8790],
-  "portsAttributes": {
-    "8790": { "label": "gmux", "onAutoForward": "silent" }
+    "ghcr.io/gmuxapp/features/gmux": {}
   }
 }
 ```
 
-Add `forwardPorts` to your `devcontainer.json` so port 8790 is forwarded to the host. Open the forwarded URL and authenticate with the bearer token.
+That's it. Rebuild the container, start a `gmux` session inside it, and it shows up on the host. No port forwarding, no token copying.
 
-### Finding the auth token
-
-```bash
-docker exec <container> gmuxd auth
-```
-
-Prints the listen address, auth token, and a ready-to-use login URL.
+The host gmuxd detects the container via Docker events, reads the auth token via `docker exec`, and connects over the Docker bridge. See [Devcontainers](https://gmux.app/devcontainers) for the full guide.
 
 ## Options
 
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
-| `version` | string | `latest` | gmux version to install (e.g. `0.8.0` or `latest`) |
+| `version` | string | `latest` | gmux version to install (e.g. `1.0.0` or `latest`) |
 
 ## Pre-provisioned auth token
 
-If you need a known token (for scripting, health checks, or future host-side peer discovery), set `GMUXD_TOKEN` in your `devcontainer.json`:
+If you need a known token (for scripting or health checks), set `GMUXD_TOKEN` in your `devcontainer.json`:
 
 ```json
 {
-  "image": "mcr.microsoft.com/devcontainers/base:debian",
   "features": {
-    "ghcr.io/gmuxapp/features/gmux:1": {}
+    "ghcr.io/gmuxapp/features/gmux": {}
   },
-  "forwardPorts": [8790],
   "containerEnv": {
     "GMUXD_TOKEN": "output-of-openssl-rand-hex-32"
   }
@@ -52,18 +40,34 @@ If you need a known token (for scripting, health checks, or future host-side pee
 
 The token must be at least 64 hex characters. On first start, gmuxd writes it to disk. On subsequent starts, the file is verified against the env var. See [Environment variables](https://gmux.app/reference/environment/#auth-token) for details.
 
+With auto-discovery you rarely need this; the host reads the token from the container automatically.
+
+## Standalone access
+
+If there's no host-side gmux (e.g. a remote server), add port forwarding to access the container's UI directly:
+
+```json
+{
+  "features": {
+    "ghcr.io/gmuxapp/features/gmux": {}
+  },
+  "forwardPorts": [8790],
+  "portsAttributes": {
+    "8790": { "label": "gmux", "onAutoForward": "silent" }
+  }
+}
+```
+
+Authenticate with `docker exec <container> gmuxd auth`.
+
 ## Security
 
 The network listener requires bearer token authentication on every request. The token is auto-generated on first start and stored inside the container at `~/.local/state/gmux/auth-token`.
 
-Devcontainer-aware tooling (VS Code, Codespaces) forwards the port to `localhost` on the host, so only local processes can reach it. The bearer token provides a second layer of protection on the Docker bridge network.
+The host gmuxd reads this token via `docker exec` and uses it to authenticate. No secrets leave the Docker bridge network.
 
 See [Security](https://gmux.app/security/) for the full security model.
 
 ## How it works
 
-The feature sets `GMUXD_LISTEN=0.0.0.0` via `containerEnv` so gmuxd accepts connections from outside the container (required for port forwarding and Docker bridge access). The entrypoint starts gmuxd in the background before running the container's main process.
-
-## Peer discovery
-
-A host gmuxd will be able to automatically discover gmuxd instances running inside dev containers. The feature's presence in the container's `devcontainer.metadata` label is the discovery signal. See [Peer Discovery & Aggregation](https://gmux.app/planned/peer-discovery-aggregation/) for the planned design.
+The feature sets `GMUXD_LISTEN=0.0.0.0` via `containerEnv` so gmuxd accepts connections from outside the container (required for Docker bridge access). The entrypoint runs `gmuxd start` before the container's main process. The host gmuxd subscribes to Docker events and detects containers with `GMUXD_LISTEN` in their environment.
