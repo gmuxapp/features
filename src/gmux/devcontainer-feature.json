@@ -8,7 +8,7 @@
     "version": {
       "type": "string",
       "default": "latest",
-      "description": "gmux version to install (e.g. '0.8.0' or 'latest')"
+      "description": "gmux version to install (e.g. '1.0.0' or 'latest')"
     }
   },
   "containerEnv": {
