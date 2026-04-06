@@ -36,17 +36,15 @@ fi
 
 echo "gmux ${VERSION} installed successfully"
 
-# Entrypoint: starts gmuxd in the background if not already running.
+# Entrypoint: starts gmuxd if not already running.
+# gmuxd start backgrounds itself, logs to ~/.local/state/gmux/gmuxd.log,
+# and waits for health before returning.
 # GMUXD_LISTEN is set via containerEnv in devcontainer-feature.json.
 # GMUXD_TOKEN can be set via containerEnv in the user's devcontainer.json.
 cat > /usr/local/bin/gmuxd-start.sh << 'SCRIPT'
 #!/bin/bash
-if ! curl -fsS http://localhost:8790/ >/dev/null 2>&1; then
-  gmuxd start >/tmp/gmuxd.log 2>&1 &
-  for i in $(seq 1 30); do
-    curl -fsS http://localhost:8790/ >/dev/null 2>&1 && break
-    sleep 0.5
-  done
+if ! gmuxd status >/dev/null 2>&1; then
+  gmuxd start
 fi
 exec "$@"
 SCRIPT

@@ -2,7 +2,7 @@
   "id": "gmux",
   "version": "1.1.0",
   "name": "gmux",
-  "documentationURL": "https://gmux.app/running-in-docker",
+  "documentationURL": "https://gmux.app/devcontainers",
   "description": "Installs gmux and gmuxd for managing terminal sessions from a browser dashboard.",
   "options": {
     "version": {
